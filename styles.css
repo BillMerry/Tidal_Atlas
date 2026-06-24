@@ -51,7 +51,8 @@ button:hover {
 }
 
 button:focus-visible,
-input:focus-visible {
+input:focus-visible,
+select:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
@@ -403,25 +404,134 @@ button[disabled] {
   }
 }
 
-@media (orientation: landscape) and (max-height: 900px) {
+@media (orientation: landscape) and (min-width: 900px) and (max-height: 900px) {
   body {
     overflow: hidden;
   }
 
   .app-header {
-    padding-top: 0.45rem;
-    padding-bottom: 0.45rem;
+    min-height: 42px;
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+  }
+
+  .app-header h1 {
+    font-size: 1.1rem;
+  }
+
+  .eyebrow,
+  .app-footer,
+  .chart-frame figcaption {
+    display: none;
   }
 
   .layout {
-    grid-template-columns: minmax(18rem, 28rem) minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr);
-    height: calc(100dvh - 5rem);
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 0.35rem;
+    width: 100%;
+    height: calc(100dvh - 42px);
+    padding: 0.35rem;
   }
 
-  .hw-form,
+  .controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(14rem, 0.38fr);
+    grid-template-areas:
+      "form form"
+      "nav jump";
+    gap: 0.35rem 0.45rem;
+    padding: 0.45rem;
+    box-shadow: none;
+  }
+
+  .hw-form {
+    grid-area: form;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.45rem;
+  }
+
+  .cycle-inputs {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.35rem;
+  }
+
   .cycle-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: auto minmax(0, 1fr) minmax(0, 0.72fr) auto;
+    gap: 0.25rem;
+  }
+
+  .cycle-label {
+    font-size: 0.85rem;
+  }
+
+  .hw-form label,
+  .jump-control {
+    gap: 0;
+    font-size: 0;
+  }
+
+  .hw-form input,
+  .jump-control select {
+    min-height: 34px;
+    padding: 0.28rem 0.45rem;
+    font-size: 0.86rem;
+    font-weight: 700;
+  }
+
+  button {
+    min-height: 34px;
+    padding: 0.35rem 0.65rem;
+    border-radius: 7px;
+  }
+
+  .remove-cycle {
+    min-width: 32px;
+    min-height: 32px;
+    padding: 0.25rem 0.35rem;
+  }
+
+  .form-actions {
+    grid-template-columns: auto auto;
+    gap: 0.35rem;
+  }
+
+  .control-row {
+    grid-area: nav;
+    gap: 0.35rem;
+    margin: 0;
+  }
+
+  .jump-control {
+    grid-area: jump;
+    margin: 0;
+  }
+
+  .viewer {
+    gap: 0.35rem;
+  }
+
+  .chart-meta {
+    align-items: center;
+    padding: 0.45rem 0.6rem;
+  }
+
+  .offset-label {
+    font-size: 0.82rem;
+  }
+
+  .valid-time {
+    font-size: 1.25rem;
+  }
+
+  .reference-time,
+  .page-counter {
+    max-width: none;
+    font-size: 0.86rem;
+  }
+
+  .chart-frame {
+    grid-template-rows: minmax(0, 1fr);
   }
 
   .chart-frame img {

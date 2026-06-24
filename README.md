@@ -89,6 +89,14 @@ Because GitHub Pages is static hosting, any provider needing a secret API key sh
 3. If needed, call a small backend/serverless endpoint that holds API credentials.
 4. Cache successful predictions locally for offline use.
 
+Recommended next smart-version path:
+
+1. Choose a legal source for HW Cherbourg predictions.
+2. Prefer SHOM if a SUP Marée/SAPM subscription is acceptable.
+3. Add a small private proxy endpoint, for example a serverless function, to hold the API key.
+4. Have `tideProvider.js` fetch the next 2-4 HW Cherbourg times and pre-fill the manual HW entries.
+5. Keep the manual entries editable so the app still works offline or when the provider is unavailable.
+
 ## Replacing Charts
 
 To replace charts, add new PNGs to `charts/` and update `chartDefinitions` in `app.js`. Keep one entry per offset from `-5` to `+6`, or extend the list if you later add more atlas pages.

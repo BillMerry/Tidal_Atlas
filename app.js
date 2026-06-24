@@ -324,7 +324,6 @@ function wireInstallPrompt() {
 
 function wireEvents() {
   elements.form.addEventListener("submit", updateReferenceTime);
-  elements.cycleInputs.addEventListener("change", updateReferenceTime);
   elements.addCycleButton.addEventListener("click", addCycle);
   elements.prevButton.addEventListener("click", () => moveChart(-1));
   elements.nextButton.addEventListener("click", () => moveChart(1));

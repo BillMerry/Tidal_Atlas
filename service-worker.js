@@ -1,4 +1,4 @@
-const CACHE_NAME = "north-brittany-tidal-atlas-v2";
+const CACHE_NAME = "north-brittany-tidal-atlas-v3";
 
 const APP_SHELL = [
   "./",
