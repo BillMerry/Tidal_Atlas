@@ -26,13 +26,14 @@ The current version is deliberately simple: vanilla HTML, CSS, and JavaScript, n
 ## Features
 
 - Shows one chart at a time from HW Cherbourg -5 through HW Cherbourg +6.
-- Calculates each chart's valid date/time from the entered HW Cherbourg date and time.
+- Accepts up to four consecutive HW Cherbourg date/time entries.
+- Calculates each chart's valid date/time from the active HW Cherbourg cycle.
 - Uses UK date format and a 24-hour clock.
 - Supports Previous and Next buttons.
 - Supports keyboard left/right arrow navigation.
 - Supports horizontal swipe navigation on touch devices.
-- Includes a Nearest now button when the current time falls inside the selected HW cycle.
-- Stores the last-used HW Cherbourg date/time in local storage.
+- Includes a Nearest now button when the current time falls inside the entered HW cycles.
+- Stores the last-used HW Cherbourg date/time entries in local storage.
 - Caches the app shell and chart images for offline use after first load.
 
 ## Local Use

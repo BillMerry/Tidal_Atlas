@@ -24,19 +24,15 @@
       <section class="controls" aria-labelledby="hw-heading">
         <div class="section-title">
           <h2 id="hw-heading">HW Cherbourg</h2>
-          <p>Enter the reference high water for this tidal cycle.</p>
+          <p>Enter up to four consecutive high waters.</p>
         </div>
 
         <form id="hwForm" class="hw-form">
-          <label>
-            Date
-            <input id="hwDate" type="date" required>
-          </label>
-          <label>
-            Time
-            <input id="hwTime" type="time" required>
-          </label>
-          <button type="submit">Update charts</button>
+          <div id="cycleInputs" class="cycle-inputs"></div>
+          <div class="form-actions">
+            <button type="submit">Update</button>
+            <button id="addCycleButton" class="secondary" type="button">Add HW</button>
+          </div>
         </form>
 
         <div class="control-row">
@@ -45,7 +41,10 @@
           <button id="nextButton" class="secondary" type="button">Next</button>
         </div>
 
-        <ol id="chartList" class="chart-list" aria-label="Chart offsets"></ol>
+        <label class="jump-control">
+          Chart
+          <select id="chartSelect" aria-label="Jump to chart"></select>
+        </label>
       </section>
 
       <section class="viewer" aria-live="polite">
@@ -54,7 +53,10 @@
             <p id="offsetLabel" class="offset-label">HW Cherbourg</p>
             <p id="validTime" class="valid-time">Choose a date and time</p>
           </div>
-          <p id="referenceTime" class="reference-time"></p>
+          <div class="reference-block">
+            <p id="referenceTime" class="reference-time"></p>
+            <p id="pageCounter" class="page-counter"></p>
+          </div>
         </div>
 
         <figure id="chartFrame" class="chart-frame">

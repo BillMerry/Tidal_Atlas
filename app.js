@@ -16,23 +16,25 @@ const chartDefinitions = [
 ];
 
 const storageKey = "tidal-atlas.hw-cherbourg";
+const maxCycles = 4;
 const state = {
-  currentIndex: 5,
-  hwDateTime: null,
+  currentPageIndex: 5,
+  hwCycles: [],
 };
 
 const elements = {
   form: document.querySelector("#hwForm"),
-  hwDate: document.querySelector("#hwDate"),
-  hwTime: document.querySelector("#hwTime"),
+  cycleInputs: document.querySelector("#cycleInputs"),
+  addCycleButton: document.querySelector("#addCycleButton"),
   prevButton: document.querySelector("#prevButton"),
   nextButton: document.querySelector("#nextButton"),
   nowButton: document.querySelector("#nowButton"),
   installButton: document.querySelector("#installButton"),
-  chartList: document.querySelector("#chartList"),
+  chartSelect: document.querySelector("#chartSelect"),
   offsetLabel: document.querySelector("#offsetLabel"),
   validTime: document.querySelector("#validTime"),
   referenceTime: document.querySelector("#referenceTime"),
+  pageCounter: document.querySelector("#pageCounter"),
   chartFrame: document.querySelector("#chartFrame"),
   chartImage: document.querySelector("#chartImage"),
   chartCaption: document.querySelector("#chartCaption"),
@@ -59,6 +61,10 @@ function parseLocalDateTime(dateValue, timeValue) {
   const [year, month, day] = dateValue.split("-").map(Number);
   const [hour, minute] = timeValue.split(":").map(Number);
   return new Date(year, month - 1, day, hour, minute);
+}
+
+function addHours(date, hours) {
+  return new Date(date.getTime() + hours * 60 * 60 * 1000);
 }
 
 function formatOffset(offset) {
@@ -88,16 +94,30 @@ function formatShortTime(date) {
   }).format(date);
 }
 
-function chartDateTime(chart) {
-  if (!state.hwDateTime) return null;
-  return new Date(state.hwDateTime.getTime() + chart.offset * 60 * 60 * 1000);
+function getPages() {
+  return state.hwCycles.flatMap((hwDateTime, cycleIndex) => (
+    chartDefinitions.map((chart) => ({
+      chart,
+      cycleIndex,
+      hwDateTime,
+      validDate: addHours(hwDateTime, chart.offset),
+    }))
+  ));
+}
+
+function currentPage() {
+  const pages = getPages();
+  if (!pages.length) return null;
+  state.currentPageIndex = Math.min(state.currentPageIndex, pages.length - 1);
+  return pages[state.currentPageIndex];
 }
 
 function saveReferenceTime() {
-  if (!state.hwDateTime) return;
   localStorage.setItem(storageKey, JSON.stringify({
-    date: elements.hwDate.value,
-    time: elements.hwTime.value,
+    cycles: state.hwCycles.map((date) => ({
+      date: toDateInputValue(date),
+      time: toTimeInputValue(date),
+    })),
   }));
 }
 
@@ -111,70 +131,126 @@ function loadReferenceTime() {
     saved = null;
   }
 
-  elements.hwDate.value = saved?.date || toDateInputValue(today);
-  elements.hwTime.value = saved?.time || "12:00";
-  state.hwDateTime = parseLocalDateTime(elements.hwDate.value, elements.hwTime.value);
+  const savedCycles = saved?.cycles || (saved?.date && saved?.time ? [saved] : null);
+  state.hwCycles = (savedCycles || [{ date: toDateInputValue(today), time: "12:00" }])
+    .slice(0, maxCycles)
+    .map((cycle) => parseLocalDateTime(cycle.date, cycle.time))
+    .filter(Boolean);
 }
 
-function renderChartList() {
-  elements.chartList.innerHTML = "";
+function renderCycleInputs() {
+  elements.cycleInputs.innerHTML = "";
 
-  chartDefinitions.forEach((chart, index) => {
-    const item = document.createElement("li");
-    const button = document.createElement("button");
+  state.hwCycles.forEach((date, index) => {
+    const row = document.createElement("div");
     const label = document.createElement("span");
-    const time = document.createElement("time");
-    const validDate = chartDateTime(chart);
+    const dateLabel = document.createElement("label");
+    const timeLabel = document.createElement("label");
+    const dateInput = document.createElement("input");
+    const timeInput = document.createElement("input");
+    const removeButton = document.createElement("button");
 
-    button.type = "button";
-    button.setAttribute("aria-current", String(index === state.currentIndex));
-    label.textContent = formatOffset(chart.offset);
-    time.textContent = validDate ? formatShortTime(validDate) : "";
-    if (validDate) time.dateTime = validDate.toISOString();
+    row.className = "cycle-row";
+    label.className = "cycle-label";
+    label.textContent = `HW ${index + 1}`;
 
-    button.append(label, time);
-    button.addEventListener("click", () => {
-      state.currentIndex = index;
+    dateLabel.textContent = "Date";
+    timeLabel.textContent = "Time";
+
+    dateInput.type = "date";
+    dateInput.required = true;
+    dateInput.value = toDateInputValue(date);
+    dateInput.dataset.cycleIndex = String(index);
+    dateInput.dataset.field = "date";
+
+    timeInput.type = "time";
+    timeInput.required = true;
+    timeInput.value = toTimeInputValue(date);
+    timeInput.dataset.cycleIndex = String(index);
+    timeInput.dataset.field = "time";
+
+    dateLabel.append(dateInput);
+    timeLabel.append(timeInput);
+
+    removeButton.type = "button";
+    removeButton.className = "remove-cycle";
+    removeButton.textContent = "X";
+    removeButton.setAttribute("aria-label", `Remove HW ${index + 1}`);
+    removeButton.disabled = state.hwCycles.length === 1;
+    removeButton.addEventListener("click", () => {
+      state.hwCycles.splice(index, 1);
+      state.currentPageIndex = Math.min(state.currentPageIndex, getPages().length - 1);
+      saveReferenceTime();
       render();
     });
 
-    item.append(button);
-    elements.chartList.append(item);
+    row.append(label, dateLabel, timeLabel, removeButton);
+    elements.cycleInputs.append(row);
+  });
+
+  elements.addCycleButton.disabled = state.hwCycles.length >= maxCycles;
+}
+
+function renderChartSelect() {
+  const pages = getPages();
+  elements.chartSelect.innerHTML = "";
+
+  pages.forEach((page, index) => {
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent = `HW ${page.cycleIndex + 1} · ${formatOffset(page.chart.offset)} · ${formatShortTime(page.validDate)}`;
+    option.selected = index === state.currentPageIndex;
+    elements.chartSelect.append(option);
   });
 }
 
 function render() {
-  const chart = chartDefinitions[state.currentIndex];
-  const validDate = chartDateTime(chart);
+  renderCycleInputs();
+  const pages = getPages();
+  const page = currentPage();
 
-  elements.offsetLabel.textContent = formatOffset(chart.offset);
-  elements.validTime.textContent = validDate ? formatDateTime(validDate) : "Choose a date and time";
-  elements.referenceTime.textContent = state.hwDateTime
-    ? `Reference HW Cherbourg: ${formatDateTime(state.hwDateTime)}`
-    : "";
-  elements.chartImage.src = `charts/${encodeURIComponent(chart.file)}`;
-  elements.chartImage.alt = `${formatOffset(chart.offset)} tidal stream chart`;
-  elements.chartCaption.textContent = `${formatOffset(chart.offset)}. Original file: ${chart.file}`;
-  elements.prevButton.disabled = state.currentIndex === 0;
-  elements.nextButton.disabled = state.currentIndex === chartDefinitions.length - 1;
+  if (!page) {
+    elements.offsetLabel.textContent = "HW Cherbourg";
+    elements.validTime.textContent = "Choose a date and time";
+    elements.referenceTime.textContent = "";
+    elements.pageCounter.textContent = "";
+    elements.chartImage.removeAttribute("src");
+    elements.chartCaption.textContent = "";
+    elements.prevButton.disabled = true;
+    elements.nextButton.disabled = true;
+    renderChartSelect();
+    return;
+  }
 
-  renderChartList();
+  elements.offsetLabel.textContent = `Cycle ${page.cycleIndex + 1} · ${formatOffset(page.chart.offset)}`;
+  elements.validTime.textContent = formatDateTime(page.validDate);
+  elements.referenceTime.textContent = `HW ${page.cycleIndex + 1}: ${formatDateTime(page.hwDateTime)}`;
+  elements.pageCounter.textContent = `${state.currentPageIndex + 1} of ${pages.length}`;
+  elements.chartImage.src = `charts/${encodeURIComponent(page.chart.file)}`;
+  elements.chartImage.alt = `${formatOffset(page.chart.offset)} tidal stream chart`;
+  elements.chartCaption.textContent = `${formatOffset(page.chart.offset)}. Original file: ${page.chart.file}`;
+  elements.prevButton.disabled = state.currentPageIndex === 0;
+  elements.nextButton.disabled = state.currentPageIndex === pages.length - 1;
+
+  renderChartSelect();
 }
 
 function moveChart(step) {
-  const nextIndex = Math.min(chartDefinitions.length - 1, Math.max(0, state.currentIndex + step));
-  if (nextIndex !== state.currentIndex) {
-    state.currentIndex = nextIndex;
+  const pages = getPages();
+  const nextIndex = Math.min(pages.length - 1, Math.max(0, state.currentPageIndex + step));
+  if (nextIndex !== state.currentPageIndex) {
+    state.currentPageIndex = nextIndex;
     render();
   }
 }
 
 function jumpToNearestNow() {
-  if (!state.hwDateTime) return;
+  const pages = getPages();
+  if (!pages.length) return;
 
   const now = new Date();
-  const first = chartDateTime(chartDefinitions[0]);
-  const last = chartDateTime(chartDefinitions[chartDefinitions.length - 1]);
+  const first = pages[0].validDate;
+  const last = pages[pages.length - 1].validDate;
 
   if (now < first || now > last) {
     elements.nowButton.textContent = "Now outside cycle";
@@ -187,21 +263,39 @@ function jumpToNearestNow() {
   let nearestIndex = 0;
   let nearestGap = Infinity;
 
-  chartDefinitions.forEach((chart, index) => {
-    const gap = Math.abs(chartDateTime(chart).getTime() - now.getTime());
+  pages.forEach((page, index) => {
+    const gap = Math.abs(page.validDate.getTime() - now.getTime());
     if (gap < nearestGap) {
       nearestGap = gap;
       nearestIndex = index;
     }
   });
 
-  state.currentIndex = nearestIndex;
+  state.currentPageIndex = nearestIndex;
   render();
 }
 
 function updateReferenceTime(event) {
   event?.preventDefault();
-  state.hwDateTime = parseLocalDateTime(elements.hwDate.value, elements.hwTime.value);
+  const nextCycles = [];
+
+  for (const row of elements.cycleInputs.querySelectorAll(".cycle-row")) {
+    const dateInput = row.querySelector('input[type="date"]');
+    const timeInput = row.querySelector('input[type="time"]');
+    const date = parseLocalDateTime(dateInput.value, timeInput.value);
+    if (date) nextCycles.push(date);
+  }
+
+  state.hwCycles = nextCycles.slice(0, maxCycles);
+  state.currentPageIndex = Math.min(state.currentPageIndex, getPages().length - 1);
+  saveReferenceTime();
+  render();
+}
+
+function addCycle() {
+  if (state.hwCycles.length >= maxCycles) return;
+  const lastCycle = state.hwCycles[state.hwCycles.length - 1] || new Date();
+  state.hwCycles.push(addHours(lastCycle, 12));
   saveReferenceTime();
   render();
 }
@@ -230,11 +324,15 @@ function wireInstallPrompt() {
 
 function wireEvents() {
   elements.form.addEventListener("submit", updateReferenceTime);
-  elements.hwDate.addEventListener("change", updateReferenceTime);
-  elements.hwTime.addEventListener("change", updateReferenceTime);
+  elements.cycleInputs.addEventListener("change", updateReferenceTime);
+  elements.addCycleButton.addEventListener("click", addCycle);
   elements.prevButton.addEventListener("click", () => moveChart(-1));
   elements.nextButton.addEventListener("click", () => moveChart(1));
   elements.nowButton.addEventListener("click", jumpToNearestNow);
+  elements.chartSelect.addEventListener("change", () => {
+    state.currentPageIndex = Number(elements.chartSelect.value);
+    render();
+  });
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "ArrowLeft") moveChart(-1);
