@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="North Brittany Tidal Atlas icon">
+  <rect width="512" height="512" rx="96" fill="#12384a"/>
+  <path d="M96 310c46-38 91-38 137 0s91 38 137 0 84-38 126-6v66c-42-32-80-32-126 6s-91 38-137 0-91-38-137 0z" fill="#d9eef5"/>
+  <path d="M106 210h300" stroke="#ffffff" stroke-width="34" stroke-linecap="round"/>
+  <path d="M256 116v190" stroke="#ffffff" stroke-width="34" stroke-linecap="round"/>
+  <circle cx="256" cy="116" r="38" fill="#ffffff"/>
+</svg>

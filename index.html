@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#12384a">
+    <meta name="description" content="Private North Brittany tidal atlas viewer based on High Water Cherbourg.">
+    <title>North Brittany Tidal Atlas</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">STEELER private reference</p>
+        <h1>North Brittany Tidal Atlas</h1>
+      </div>
+      <button id="installButton" class="secondary hidden" type="button">Install</button>
+    </header>
+
+    <main class="layout">
+      <section class="controls" aria-labelledby="hw-heading">
+        <div class="section-title">
+          <h2 id="hw-heading">HW Cherbourg</h2>
+          <p>Enter the reference high water for this tidal cycle.</p>
+        </div>
+
+        <form id="hwForm" class="hw-form">
+          <label>
+            Date
+            <input id="hwDate" type="date" required>
+          </label>
+          <label>
+            Time
+            <input id="hwTime" type="time" required>
+          </label>
+          <button type="submit">Update charts</button>
+        </form>
+
+        <div class="control-row">
+          <button id="prevButton" class="secondary" type="button">Previous</button>
+          <button id="nowButton" class="secondary" type="button">Nearest now</button>
+          <button id="nextButton" class="secondary" type="button">Next</button>
+        </div>
+
+        <ol id="chartList" class="chart-list" aria-label="Chart offsets"></ol>
+      </section>
+
+      <section class="viewer" aria-live="polite">
+        <div class="chart-meta">
+          <div>
+            <p id="offsetLabel" class="offset-label">HW Cherbourg</p>
+            <p id="validTime" class="valid-time">Choose a date and time</p>
+          </div>
+          <p id="referenceTime" class="reference-time"></p>
+        </div>
+
+        <figure id="chartFrame" class="chart-frame">
+          <img id="chartImage" alt="Tidal stream chart">
+          <figcaption id="chartCaption"></figcaption>
+        </figure>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <p>For private passage-planning support only. Confirm navigation decisions with official publications and current conditions.</p>
+    </footer>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
