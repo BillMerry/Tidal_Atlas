@@ -1,6 +1,6 @@
 import { fetchHighWaterCherbourg } from "./tideProvider.js";
 
-const appVersion = "v4";
+const appVersion = "v0.4";
 
 const chartDefinitions = [
   { offset: -5, file: "1 Cherbourg -5 Brest-1.png" },
