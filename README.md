@@ -35,6 +35,7 @@ The current version is deliberately simple: vanilla HTML, CSS, and JavaScript, n
 - Includes a Nearest now button when the current time falls inside the entered HW cycles.
 - Stores the last-used HW Cherbourg date/time entries in local storage.
 - Caches the app shell and chart images for offline use after first load.
+- Shows a small app version marker in the header to make PWA/cache updates easier to verify.
 
 ## Local Use
 

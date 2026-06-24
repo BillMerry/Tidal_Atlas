@@ -1,5 +1,7 @@
 import { fetchHighWaterCherbourg } from "./tideProvider.js";
 
+const appVersion = "v4";
+
 const chartDefinitions = [
   { offset: -5, file: "1 Cherbourg -5 Brest-1.png" },
   { offset: -4, file: "2 Cherbourg -4 Brest-H-W.png" },
@@ -38,6 +40,7 @@ const elements = {
   chartFrame: document.querySelector("#chartFrame"),
   chartImage: document.querySelector("#chartImage"),
   chartCaption: document.querySelector("#chartCaption"),
+  appVersion: document.querySelector("#appVersion"),
 };
 
 let installPrompt = null;
@@ -302,7 +305,9 @@ function addCycle() {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("service-worker.js");
+    navigator.serviceWorker.register("service-worker.js").then((registration) => {
+      registration.update();
+    });
   }
 }
 
@@ -356,6 +361,7 @@ function wireEvents() {
 }
 
 async function initialise() {
+  elements.appVersion.textContent = appVersion;
   loadReferenceTime();
   wireEvents();
   wireInstallPrompt();
