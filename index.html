@@ -7,7 +7,7 @@
     <meta name="description" content="Private North Brittany tidal atlas viewer based on High Water Cherbourg.">
     <title>North Brittany Tidal Atlas</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="styles.css?v=0.4">
+    <link rel="stylesheet" href="styles.css?v=0.5">
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
   </head>
@@ -17,23 +17,18 @@
         <p class="eyebrow">STEELER private reference</p>
         <h1>North Brittany Tidal Atlas</h1>
       </div>
-      <p id="appVersion" class="app-version">v0.4</p>
+      <p id="appVersion" class="app-version">v0.5</p>
       <button id="installButton" class="secondary hidden" type="button">Install</button>
     </header>
 
     <main class="layout">
       <section class="controls" aria-labelledby="hw-heading">
-        <div class="section-title">
-          <h2 id="hw-heading">HW Cherbourg</h2>
-          <p>Enter up to four consecutive high waters.</p>
-        </div>
-
-        <form id="hwForm" class="hw-form">
-          <div id="cycleInputs" class="cycle-inputs"></div>
-          <div class="form-actions">
-            <button type="submit">Update</button>
-            <button id="addCycleButton" class="secondary" type="button">Add HW</button>
-          </div>
+        <form id="planningForm" class="smart-form">
+          <label>
+            Planning date
+            <input id="planningDate" type="date" required>
+          </label>
+          <button id="loadSmartButton" type="submit">Load tides</button>
         </form>
 
         <div class="control-row">
@@ -46,6 +41,19 @@
           Chart
           <select id="chartSelect" aria-label="Jump to chart"></select>
         </label>
+
+        <p id="providerStatus" class="provider-status"></p>
+
+        <details id="manualPanel" class="manual-panel">
+          <summary>Manual HW fallback</summary>
+          <form id="hwForm" class="hw-form">
+            <div id="cycleInputs" class="cycle-inputs"></div>
+            <div class="form-actions">
+              <button type="submit">Use manual times</button>
+              <button id="addCycleButton" class="secondary" type="button">Add HW</button>
+            </div>
+          </form>
+        </details>
       </section>
 
       <section class="viewer" aria-live="polite">
@@ -71,6 +79,6 @@
       <p>For private passage-planning support only. Confirm navigation decisions with official publications and current conditions.</p>
     </footer>
 
-    <script type="module" src="app.js?v=0.4"></script>
+    <script type="module" src="app.js?v=0.5"></script>
   </body>
 </html>

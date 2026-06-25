@@ -151,6 +151,7 @@ button[disabled] {
   color: var(--muted);
 }
 
+.smart-form,
 .hw-form {
   display: grid;
   grid-template-columns: 1fr;
@@ -178,6 +179,7 @@ button[disabled] {
   white-space: nowrap;
 }
 
+.smart-form label,
 .hw-form label,
 .jump-control {
   display: grid;
@@ -187,6 +189,7 @@ button[disabled] {
   font-weight: 700;
 }
 
+.smart-form input,
 .hw-form input,
 .jump-control select {
   width: 100%;
@@ -196,6 +199,27 @@ button[disabled] {
   padding: 0.5rem 0.65rem;
   background: #fff;
   color: var(--ink);
+}
+
+.provider-status {
+  margin: 0.55rem 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.manual-panel {
+  margin-top: 0.55rem;
+  color: var(--muted);
+}
+
+.manual-panel summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.manual-panel .hw-form {
+  margin-top: 0.55rem;
 }
 
 .form-actions {
@@ -365,6 +389,7 @@ button[disabled] {
     padding: 0.45rem;
   }
 
+  .smart-form,
   .hw-form,
   .cycle-row {
     grid-template-columns: 1fr;
@@ -453,15 +478,21 @@ button[disabled] {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(14rem, 0.38fr);
     grid-template-areas:
-      "form form"
-      "nav jump";
+      "smart manual"
+      "nav jump"
+      "status status";
     gap: 0.35rem 0.45rem;
     padding: 0.45rem;
     box-shadow: none;
   }
 
+  .smart-form {
+    grid-area: smart;
+    grid-template-columns: minmax(10rem, 1fr) auto;
+    gap: 0.45rem;
+  }
+
   .hw-form {
-    grid-area: form;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 0.45rem;
   }
@@ -480,12 +511,14 @@ button[disabled] {
     font-size: 0.85rem;
   }
 
+  .smart-form label,
   .hw-form label,
   .jump-control {
     gap: 0;
     font-size: 0;
   }
 
+  .smart-form input,
   .hw-form input,
   .jump-control select {
     min-height: 34px;
@@ -520,6 +553,26 @@ button[disabled] {
   .jump-control {
     grid-area: jump;
     margin: 0;
+  }
+
+  .provider-status {
+    grid-area: status;
+    margin: 0;
+    overflow: hidden;
+    font-size: 0.76rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .manual-panel {
+    grid-area: manual;
+    justify-self: end;
+    margin: 0;
+    font-size: 0.82rem;
+  }
+
+  .manual-panel[open] {
+    justify-self: stretch;
   }
 
   .viewer {
