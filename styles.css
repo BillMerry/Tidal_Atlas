@@ -411,7 +411,7 @@ button[disabled] {
   }
 }
 
-@media (orientation: landscape) and (min-width: 900px) and (max-height: 900px) {
+@media (orientation: landscape) {
   body {
     overflow: hidden;
   }
@@ -428,6 +428,10 @@ button[disabled] {
 
   .app-version {
     font-size: 0.75rem;
+  }
+
+  .app-version::after {
+    content: " landscape";
   }
 
   .eyebrow,
