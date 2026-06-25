@@ -488,7 +488,7 @@ button[disabled] {
 
   .smart-form {
     grid-area: smart;
-    grid-template-columns: minmax(10rem, 1fr) auto;
+    grid-template-columns: minmax(10rem, 1fr) auto auto;
     gap: 0.45rem;
   }
 

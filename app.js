@@ -1,6 +1,6 @@
 import { getHighWaters } from "./tideProvider.js";
 
-const appVersion = "v0.5";
+const appVersion = "v0.6";
 const storageKey = "tidal-atlas.smart-state";
 const legacyStorageKey = "tidal-atlas.hw-cherbourg";
 const maxManualHighWaters = 8;
@@ -34,6 +34,7 @@ const elements = {
   planningForm: document.querySelector("#planningForm"),
   planningDate: document.querySelector("#planningDate"),
   loadSmartButton: document.querySelector("#loadSmartButton"),
+  demoButton: document.querySelector("#demoButton"),
   form: document.querySelector("#hwForm"),
   cycleInputs: document.querySelector("#cycleInputs"),
   addCycleButton: document.querySelector("#addCycleButton"),
@@ -186,6 +187,16 @@ function saveState() {
   }));
 }
 
+function createDemoHighWaters(anchorDate) {
+  const first = new Date(anchorDate);
+  first.setDate(first.getDate() - 1);
+  first.setHours(23, 50, 0, 0);
+
+  return Array.from({ length: 8 }, (_, index) => (
+    addHours(first, index * 12.42)
+  ));
+}
+
 function readJsonStorage(key) {
   try {
     return JSON.parse(localStorage.getItem(key));
@@ -285,7 +296,11 @@ function renderChartSelect() {
 
 function renderStatus() {
   const count = state.highWaters.length;
-  const sourceLabel = state.source === "smart" ? "Smart tide lookup" : "Manual fallback";
+  const sourceLabel = state.source === "smart"
+    ? "Smart tide lookup"
+    : state.source === "demo"
+      ? "DEMO ONLY"
+      : "Manual fallback";
   const coverage = count
     ? `${count} HW time${count === 1 ? "" : "s"} loaded`
     : "No HW times loaded";
@@ -317,17 +332,29 @@ function render() {
     return;
   }
 
-  elements.offsetLabel.textContent = `HW ${page.hwIndex + 1} · ${formatOffset(page.chart.offset)}`;
+  const demoPrefix = state.source === "demo" ? "DEMO ONLY · " : "";
+  elements.offsetLabel.textContent = `${demoPrefix}HW ${page.hwIndex + 1} · ${formatOffset(page.chart.offset)}`;
   elements.validTime.textContent = formatDateTime(page.validDate);
-  elements.referenceTime.textContent = `Reference HW: ${formatDateTime(page.hwDateTime)}`;
+  elements.referenceTime.textContent = `${state.source === "demo" ? "Demo" : "Reference"} HW: ${formatDateTime(page.hwDateTime)}`;
   elements.pageCounter.textContent = `${state.currentPageIndex + 1} of ${pages.length}`;
   elements.chartImage.src = `charts/${encodeURIComponent(page.chart.file)}`;
   elements.chartImage.alt = `${formatOffset(page.chart.offset)} tidal stream chart`;
-  elements.chartCaption.textContent = `${formatOffset(page.chart.offset)}. Original file: ${page.chart.file}`;
+  elements.chartCaption.textContent = `${state.source === "demo" ? "DEMO ONLY - not for navigation. " : ""}${formatOffset(page.chart.offset)}. Original file: ${page.chart.file}`;
   elements.prevButton.disabled = state.currentPageIndex === 0;
   elements.nextButton.disabled = state.currentPageIndex === pages.length - 1;
   elements.nowButton.disabled = false;
   elements.chartSelect.disabled = false;
+}
+
+function loadDemoHighWaters() {
+  state.planningDate = parsePlanningDate(elements.planningDate.value);
+  state.highWaters = normaliseHighWaters(createDemoHighWaters(state.planningDate));
+  state.source = "demo";
+  state.providerMessage = "Generated interface-test times only - not HW Cherbourg and not for navigation.";
+  state.currentPageIndex = findNearestPageIndex(state.planningDate);
+  elements.manualPanel.open = false;
+  saveState();
+  render();
 }
 
 async function loadSmartHighWaters(anchorDate = state.planningDate, options = {}) {
@@ -458,6 +485,7 @@ function wireEvents() {
     loadSmartHighWaters(state.planningDate);
   });
 
+  elements.demoButton.addEventListener("click", loadDemoHighWaters);
   elements.form.addEventListener("submit", updateManualHighWaters);
   elements.addCycleButton.addEventListener("click", addManualHighWater);
   elements.prevButton.addEventListener("click", () => moveChart(-1));

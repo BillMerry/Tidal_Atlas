@@ -29,6 +29,7 @@ The current version is deliberately simple: vanilla HTML, CSS, and JavaScript, n
 - Uses a planning date as the primary input for the smart-version workflow.
 - Builds the chart timeline from loaded HW Cherbourg times.
 - Keeps manual HW Cherbourg entry as an advanced/offline fallback.
+- Includes an explicit demo-only timeline for interface testing before live tide lookup is configured.
 - Uses UK date format and a 24-hour clock.
 - Supports Previous and Next buttons.
 - Supports keyboard left/right arrow navigation.
