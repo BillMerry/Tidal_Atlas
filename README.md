@@ -14,6 +14,8 @@ The current version is deliberately simple: vanilla HTML, CSS, and JavaScript, n
 ├── tideProvider.js
 ├── manifest.json
 ├── service-worker.js
+├── worker/
+│   └── Cloudflare Worker tide proxy
 ├── charts/
 │   ├── 1 Cherbourg -5 Brest-1.png
 │   ├── ...
@@ -82,7 +84,7 @@ The app includes `tideProvider.js` as the integration point for automatic lookup
 Current live lookup routes to investigate:
 
 - **SHOM**: likely the most authoritative French source. SHOM documents two tide prediction services, SUP Marée for prediction by site and SAPM for prediction at any point. Access requires a subscription key purchased from the SHOM shop. SHOM describes functions for high/low water times and heights, stepped heights, and threshold calculations. A server-side proxy may be needed if credentials must be protected or if CORS blocks direct browser requests.
-- **WorldTides API**: commercial API with API keys, credits, and usage terms. It can return high/low tide extremes for a location, but a public GitHub Pages app should not expose a private API key. WorldTides also places limits on sharing/caching prediction results across multiple users, so caching needs to be per-user and within their terms.
+- **WorldTides API**: commercial API with API keys, credits, and usage terms. It can return high/low tide extremes for a location. The app calls a Cloudflare Worker proxy so the key is not exposed in the public GitHub Pages source.
 - **Other tide prediction services**: only use sources with clear licensing, attribution rules, and permission for the intended private/offline use.
 
 Because GitHub Pages is static hosting, any provider needing a secret API key should not be called directly from the browser. The usual architecture is:
@@ -101,6 +103,31 @@ Recommended next smart-version path:
 4. Have `tideProvider.js` fetch HW Cherbourg times around the planning date.
 5. Extend the loaded timeline when the user nears either end.
 6. Keep the manual entries editable so the app still works offline or when the provider is unavailable.
+
+## WorldTides Worker
+
+The `worker/` folder contains a Cloudflare Worker proxy for WorldTides.
+
+Configure the secret:
+
+```sh
+cd worker
+wrangler secret put WORLDTIDES_API_KEY
+```
+
+Deploy:
+
+```sh
+wrangler deploy
+```
+
+The PWA expects the Worker at:
+
+```text
+https://tidal-atlas-tides.bill-merry-52f.workers.dev/high-waters
+```
+
+If Cloudflare gives the Worker a different URL, update `defaultEndpoint` in `tideProvider.js` and bump the app/cache version.
 
 ## Replacing Charts
 

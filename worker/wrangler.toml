@@ -1,0 +1,8 @@
+name = "tidal-atlas-tides"
+main = "src/index.js"
+compatibility_date = "2026-06-27"
+
+[vars]
+ALLOWED_ORIGIN = "https://billmerry.github.io"
+CHERBOURG_LAT = "49.645"
+CHERBOURG_LON = "-1.625"
