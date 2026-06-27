@@ -1,6 +1,6 @@
 import { getHighWaters } from "./tideProvider.js";
 
-const appVersion = "v0.7";
+const appVersion = "v0.8";
 const storageKey = "tidal-atlas.smart-state";
 const legacyStorageKey = "tidal-atlas.hw-cherbourg";
 const maxManualHighWaters = 8;
@@ -121,6 +121,14 @@ function formatShortTime(date) {
   }).format(date);
 }
 
+function formatClock(date) {
+  return new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(date);
+}
+
 function normaliseHighWaters(highWaters) {
   const byMinute = new Map();
 
@@ -180,6 +188,8 @@ function serialiseHighWaters() {
 }
 
 function saveState() {
+  if (state.source === "demo") return;
+
   localStorage.setItem(storageKey, JSON.stringify({
     planningDate: toDateInputValue(state.planningDate),
     highWaters: serialiseHighWaters(),
@@ -217,15 +227,26 @@ function loadState() {
   const today = new Date();
 
   state.planningDate = parsePlanningDate(saved?.planningDate || toDateInputValue(today));
-  state.source = saved?.source || "manual";
-  state.highWaters = normaliseHighWaters(
-    parseStoredHighWaters(saved?.highWaters || saved?.cycles || legacy?.cycles)
-  );
+  state.source = saved?.source === "smart" ? "smart" : "manual";
+  state.highWaters = saved?.source === "demo"
+    ? []
+    : normaliseHighWaters(
+      parseStoredHighWaters(saved?.highWaters || saved?.cycles || legacy?.cycles)
+    );
 
   elements.planningDate.value = toDateInputValue(state.planningDate);
-  if (!state.highWaters.length) {
+
+  if (saved?.source === "demo") {
+    localStorage.removeItem(storageKey);
+    elements.manualPanel.open = false;
+    state.providerMessage = "Old demo data was cleared. Press Load tides for WorldTides HW Cherbourg.";
+  } else if (!state.highWaters.length) {
     elements.manualPanel.open = true;
-    state.providerMessage = "Smart lookup needs a tide provider. Add manual HW times to use the atlas offline.";
+    state.providerMessage = "Press Load tides for WorldTides HW Cherbourg, or add manual HW times to use the atlas offline.";
+  } else if (state.source === "smart") {
+    state.providerMessage = "Saved WorldTides HW Cherbourg times. Press Load tides to refresh.";
+  } else {
+    state.providerMessage = "Saved manual fallback times. Press Load tides for WorldTides HW Cherbourg.";
   }
 }
 
@@ -288,7 +309,7 @@ function renderChartSelect() {
   pages.forEach((page, index) => {
     const option = document.createElement("option");
     option.value = String(index);
-    option.textContent = `HW ${page.hwIndex + 1} · ${formatOffset(page.chart.offset)} · ${formatShortTime(page.validDate)}`;
+    option.textContent = `HW ${page.hwIndex + 1} · ${formatOffset(page.chart.offset)} · chart ${formatShortTime(page.validDate)}`;
     option.selected = index === state.currentPageIndex;
     elements.chartSelect.append(option);
   });
@@ -297,7 +318,7 @@ function renderChartSelect() {
 function renderStatus() {
   const count = state.highWaters.length;
   const sourceLabel = state.source === "smart"
-    ? "Smart tide lookup"
+    ? "WorldTides HW Cherbourg"
     : state.source === "demo"
       ? "DEMO ONLY"
       : "Manual fallback";
@@ -306,7 +327,7 @@ function renderStatus() {
     : "No HW times loaded";
 
   elements.providerStatus.textContent = state.isLoading
-    ? "Loading HW Cherbourg times..."
+    ? "Loading HW Cherbourg times from WorldTides..."
     : `${sourceLabel}. ${coverage}. ${state.providerMessage}`;
 }
 
@@ -333,13 +354,17 @@ function render() {
   }
 
   const demoPrefix = state.source === "demo" ? "DEMO ONLY · " : "";
+  const offsetMath = page.chart.offset === 0
+    ? "HW time"
+    : `HW ${page.chart.offset > 0 ? "+" : ""}${page.chart.offset}h`;
+
   elements.offsetLabel.textContent = `${demoPrefix}HW ${page.hwIndex + 1} · ${formatOffset(page.chart.offset)}`;
-  elements.validTime.textContent = formatDateTime(page.validDate);
-  elements.referenceTime.textContent = `${state.source === "demo" ? "Demo" : "Reference"} HW: ${formatDateTime(page.hwDateTime)}`;
+  elements.validTime.textContent = `Chart valid: ${formatDateTime(page.validDate)}`;
+  elements.referenceTime.textContent = `HW Cherbourg: ${formatDateTime(page.hwDateTime)} · ${offsetMath}`;
   elements.pageCounter.textContent = `${state.currentPageIndex + 1} of ${pages.length}`;
   elements.chartImage.src = `charts/${encodeURIComponent(page.chart.file)}`;
   elements.chartImage.alt = `${formatOffset(page.chart.offset)} tidal stream chart`;
-  elements.chartCaption.textContent = `${state.source === "demo" ? "DEMO ONLY - not for navigation. " : ""}${formatOffset(page.chart.offset)}. Original file: ${page.chart.file}`;
+  elements.chartCaption.textContent = `${state.source === "demo" ? "DEMO ONLY - not for navigation. " : ""}Chart valid ${formatClock(page.validDate)} from HW Cherbourg ${formatClock(page.hwDateTime)} (${offsetMath}). Original file: ${page.chart.file}`;
   elements.prevButton.disabled = state.currentPageIndex === 0;
   elements.nextButton.disabled = state.currentPageIndex === pages.length - 1;
   elements.nowButton.disabled = false;
@@ -353,7 +378,6 @@ function loadDemoHighWaters() {
   state.providerMessage = "Generated interface-test times only - not HW Cherbourg and not for navigation.";
   state.currentPageIndex = findNearestPageIndex(state.planningDate);
   elements.manualPanel.open = false;
-  saveState();
   render();
 }
 
@@ -375,13 +399,15 @@ async function loadSmartHighWaters(anchorDate = state.planningDate, options = {}
         options.merge ? [...state.highWaters, ...fetchedHighWaters] : fetchedHighWaters
       );
       state.source = "smart";
-      state.providerMessage = result.source ? `Source: ${result.source}.` : "Live HW times loaded.";
+      state.providerMessage = result.source
+        ? `Source: ${result.source}. Check against official tide tables before use.`
+        : "Live HW times loaded. Check against official tide tables before use.";
       state.currentPageIndex = findNearestPageIndex(anchorDate);
       elements.manualPanel.open = false;
       saveState();
     } else {
       state.source = state.highWaters.length ? "manual" : "manual";
-      state.providerMessage = result?.reason || "Smart lookup is not configured.";
+      state.providerMessage = result?.reason || "WorldTides lookup is not currently available.";
       if (!state.highWaters.length) elements.manualPanel.open = true;
     }
   } catch (error) {
