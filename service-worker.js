@@ -1,10 +1,10 @@
-const CACHE_NAME = "north-brittany-tidal-atlas-v0.8";
+const CACHE_NAME = "north-brittany-tidal-atlas-v0.9";
 
 const APP_SHELL = [
   "./",
   "index.html",
-  "styles.css?v=0.8",
-  "app.js?v=0.8",
+  "styles.css?v=0.9",
+  "app.js?v=0.9",
   "tideProvider.js",
   "manifest.json",
   "icons/icon.svg",
@@ -42,6 +42,19 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put("./", copy));
+          return response;
+        })
+        .catch(() => caches.match("./").then((cached) => cached || caches.match("index.html")))
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(event.request).then((cached) => {

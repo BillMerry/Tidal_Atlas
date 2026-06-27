@@ -1,6 +1,6 @@
 import { getHighWaters } from "./tideProvider.js";
 
-const appVersion = "v0.8";
+const appVersion = "v0.9";
 const storageKey = "tidal-atlas.smart-state";
 const legacyStorageKey = "tidal-atlas.hw-cherbourg";
 const maxManualHighWaters = 8;
