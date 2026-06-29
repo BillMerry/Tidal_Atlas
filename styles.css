@@ -318,7 +318,7 @@ button[disabled] {
   border-radius: 8px;
   background: #fff;
   box-shadow: var(--shadow);
-  touch-action: pan-y;
+  touch-action: none;
 }
 
 .chart-frame img {
@@ -328,6 +328,15 @@ button[disabled] {
   max-height: calc(100dvh - 18rem);
   object-fit: contain;
   background: #fff;
+  transform-origin: 0 0;
+  transition: transform 120ms ease-out;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.chart-frame.is-zoomed img {
+  cursor: grab;
+  transition: none;
 }
 
 .chart-frame figcaption {

@@ -1,6 +1,6 @@
 import { getHighWaters } from "./tideProvider.js";
 
-const appVersion = "v0.11";
+const appVersion = "v0.12";
 const storageKey = "tidal-atlas.smart-state";
 const legacyStorageKey = "tidal-atlas.hw-cherbourg";
 const maxManualHighWaters = 8;
@@ -59,6 +59,19 @@ const elements = {
 let installPrompt = null;
 let touchStartX = 0;
 let touchStartY = 0;
+let touchMode = null;
+let chartScale = 1;
+let chartTranslateX = 0;
+let chartTranslateY = 0;
+let pinchStartDistance = 0;
+let pinchStartScale = 1;
+let pinchStartCenter = { x: 0, y: 0 };
+let pinchStartTranslate = { x: 0, y: 0 };
+let panStartPoint = { x: 0, y: 0 };
+let panStartTranslate = { x: 0, y: 0 };
+
+const minChartScale = 1;
+const maxChartScale = 4;
 
 function pad(value) {
   return String(value).padStart(2, "0");
@@ -93,6 +106,31 @@ function addDays(date, days) {
   const next = new Date(date);
   next.setDate(next.getDate() + days);
   return next;
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function distanceBetweenTouches(touches) {
+  const [first, second] = touches;
+  return Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY);
+}
+
+function centerBetweenTouches(touches) {
+  const [first, second] = touches;
+  return {
+    x: (first.clientX + second.clientX) / 2,
+    y: (first.clientY + second.clientY) / 2,
+  };
+}
+
+function localChartPoint(point) {
+  const frameRect = elements.chartFrame.getBoundingClientRect();
+  return {
+    x: point.x - frameRect.left,
+    y: point.y - frameRect.top,
+  };
 }
 
 function formatOffset(offset) {
@@ -430,6 +468,34 @@ function render() {
   elements.chartSelect.disabled = false;
 }
 
+function clampChartTranslate() {
+  if (chartScale <= minChartScale) {
+    chartTranslateX = 0;
+    chartTranslateY = 0;
+    return;
+  }
+
+  const frameRect = elements.chartFrame.getBoundingClientRect();
+  const minX = frameRect.width - frameRect.width * chartScale;
+  const minY = frameRect.height - frameRect.height * chartScale;
+
+  chartTranslateX = clamp(chartTranslateX, minX, 0);
+  chartTranslateY = clamp(chartTranslateY, minY, 0);
+}
+
+function applyChartTransform() {
+  clampChartTranslate();
+  elements.chartImage.style.transform = `translate(${chartTranslateX}px, ${chartTranslateY}px) scale(${chartScale})`;
+  elements.chartFrame.classList.toggle("is-zoomed", chartScale > minChartScale);
+}
+
+function resetChartZoom() {
+  chartScale = 1;
+  chartTranslateX = 0;
+  chartTranslateY = 0;
+  applyChartTransform();
+}
+
 function loadDemoHighWaters() {
   state.planningDate = parsePlanningDate(elements.planningDate.value);
   state.highWaters = normaliseHighWaters(createDemoHighWaters(state.planningDate));
@@ -498,6 +564,7 @@ async function moveChart(step) {
 
   if (nextIndex !== state.currentPageIndex) {
     state.currentPageIndex = nextIndex;
+    resetChartZoom();
     render();
     await maybeExtendTimeline();
   }
@@ -578,6 +645,7 @@ function wireEvents() {
   elements.nowButton.addEventListener("click", jumpToNearestNow);
   elements.chartSelect.addEventListener("change", () => {
     state.currentPageIndex = Number(elements.chartSelect.value);
+    resetChartZoom();
     render();
     maybeExtendTimeline();
   });
@@ -588,20 +656,73 @@ function wireEvents() {
   });
 
   elements.chartFrame.addEventListener("touchstart", (event) => {
-    const touch = event.changedTouches[0];
-    touchStartX = touch.clientX;
-    touchStartY = touch.clientY;
-  }, { passive: true });
+    if (event.touches.length === 2) {
+      event.preventDefault();
+      touchMode = "pinch";
+      pinchStartDistance = distanceBetweenTouches(event.touches);
+      pinchStartScale = chartScale;
+      pinchStartCenter = localChartPoint(centerBetweenTouches(event.touches));
+      pinchStartTranslate = { x: chartTranslateX, y: chartTranslateY };
+      return;
+    }
+
+    if (event.touches.length === 1) {
+      const touch = event.touches[0];
+      touchMode = chartScale > minChartScale ? "pan" : "swipe";
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      panStartPoint = { x: touch.clientX, y: touch.clientY };
+      panStartTranslate = { x: chartTranslateX, y: chartTranslateY };
+    }
+  }, { passive: false });
+
+  elements.chartFrame.addEventListener("touchmove", (event) => {
+    if (touchMode === "pinch" && event.touches.length === 2) {
+      event.preventDefault();
+      const nextDistance = distanceBetweenTouches(event.touches);
+      const nextCenter = localChartPoint(centerBetweenTouches(event.touches));
+      const nextScale = clamp(
+        pinchStartScale * (nextDistance / pinchStartDistance),
+        minChartScale,
+        maxChartScale
+      );
+      const scaleRatio = nextScale / pinchStartScale;
+
+      chartScale = nextScale;
+      chartTranslateX = nextCenter.x - ((pinchStartCenter.x - pinchStartTranslate.x) * scaleRatio);
+      chartTranslateY = nextCenter.y - ((pinchStartCenter.y - pinchStartTranslate.y) * scaleRatio);
+      applyChartTransform();
+      return;
+    }
+
+    if (touchMode === "pan" && event.touches.length === 1) {
+      event.preventDefault();
+      const touch = event.touches[0];
+      chartTranslateX = panStartTranslate.x + touch.clientX - panStartPoint.x;
+      chartTranslateY = panStartTranslate.y + touch.clientY - panStartPoint.y;
+      applyChartTransform();
+    }
+  }, { passive: false });
 
   elements.chartFrame.addEventListener("touchend", (event) => {
-    const touch = event.changedTouches[0];
-    const deltaX = touch.clientX - touchStartX;
-    const deltaY = touch.clientY - touchStartY;
+    if (touchMode === "swipe" && event.changedTouches.length) {
+      const touch = event.changedTouches[0];
+      const deltaX = touch.clientX - touchStartX;
+      const deltaY = touch.clientY - touchStartY;
 
-    if (Math.abs(deltaX) > 55 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4) {
-      moveChart(deltaX < 0 ? 1 : -1);
+      if (Math.abs(deltaX) > 55 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4) {
+        moveChart(deltaX < 0 ? 1 : -1);
+      }
     }
-  }, { passive: true });
+
+    if (chartScale < 1.04) {
+      resetChartZoom();
+    } else {
+      applyChartTransform();
+    }
+
+    if (event.touches.length === 0) touchMode = null;
+  }, { passive: false });
 }
 
 function initialise() {
