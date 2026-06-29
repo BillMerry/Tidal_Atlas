@@ -274,7 +274,8 @@ button[disabled] {
 
 .offset-label,
 .valid-time,
-.reference-time {
+.reference-time,
+.coefficient-label {
   margin: 0;
 }
 
@@ -296,6 +297,7 @@ button[disabled] {
 }
 
 .reference-time,
+.coefficient-label,
 .page-counter {
   max-width: 18rem;
   color: var(--muted);
@@ -421,6 +423,7 @@ button[disabled] {
   }
 
   .reference-time,
+  .coefficient-label,
   .page-counter {
     max-width: none;
     text-align: left;
@@ -593,6 +596,7 @@ button[disabled] {
   }
 
   .reference-time,
+  .coefficient-label,
   .page-counter {
     max-width: none;
     font-size: 0.86rem;

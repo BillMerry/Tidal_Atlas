@@ -46,13 +46,44 @@ function isHighWater(extreme) {
   return String(extreme.type || extreme.event || "").toLowerCase() === "high";
 }
 
+function isLowWater(extreme) {
+  return String(extreme.type || extreme.event || "").toLowerCase() === "low";
+}
+
 function normaliseWorldTidesExtremes(extremes) {
   return (extremes || [])
-    .filter(isHighWater)
-    .map(parseWorldTidesDate)
-    .filter((date) => date && !Number.isNaN(date.getTime()))
-    .sort((a, b) => a - b)
-    .map((date) => date.toISOString());
+    .map((extreme) => ({
+      date: parseWorldTidesDate(extreme),
+      type: isHighWater(extreme) ? "high" : isLowWater(extreme) ? "low" : "unknown",
+      heightMetres: Number.isFinite(Number(extreme.height)) ? Number(extreme.height) : null,
+    }))
+    .filter((event) => event.date && !Number.isNaN(event.date.getTime()) && event.type !== "unknown")
+    .sort((a, b) => a.date - b.date);
+}
+
+function buildHighWaterDetails(events, coefficientRangeUnit) {
+  return events
+    .filter((event) => event.type === "high")
+    .map((high) => {
+      const nextLow = events.find((event) => event.type === "low" && event.date > high.date);
+      const rangeMetres = high.heightMetres !== null && nextLow?.heightMetres !== null
+        ? high.heightMetres - nextLow.heightMetres
+        : null;
+      const coefficientEstimate = rangeMetres !== null && coefficientRangeUnit > 0
+        ? Math.round((rangeMetres / coefficientRangeUnit) * 100)
+        : null;
+
+      return {
+        date: high.date.toISOString(),
+        heightMetres: high.heightMetres,
+        nextLowWater: nextLow ? {
+          date: nextLow.date.toISOString(),
+          heightMetres: nextLow.heightMetres,
+        } : null,
+        rangeMetres,
+        coefficientEstimate,
+      };
+    });
 }
 
 async function fetchWorldTides(requestUrl, env) {
@@ -103,7 +134,10 @@ async function fetchWorldTides(requestUrl, env) {
     }, 502);
   }
 
-  const highWaters = normaliseWorldTidesExtremes(data.extremes);
+  const events = normaliseWorldTidesExtremes(data.extremes);
+  const coefficientRangeUnit = Number(env.COEFFICIENT_RANGE_UNIT_METRES || "6.1");
+  const highWaterDetails = buildHighWaterDetails(events, coefficientRangeUnit);
+  const highWaters = highWaterDetails.map((event) => event.date);
 
   return jsonResponse({
     available: highWaters.length > 0,
@@ -118,6 +152,13 @@ async function fetchWorldTides(requestUrl, env) {
       lon: env.CHERBOURG_LON || "-1.625",
     },
     highWaters,
+    highWaterDetails,
+    coefficient: {
+      available: highWaterDetails.some((event) => event.coefficientEstimate !== null),
+      label: "Estimated coefficient",
+      rangeUnitMetres: coefficientRangeUnit,
+      note: "Estimated from WorldTides predicted Cherbourg high-to-following-low range. This is not an official SHOM tidal coefficient.",
+    },
     attribution: data.copyright || "Tide predictions by WorldTides.",
   });
 }

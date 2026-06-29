@@ -1,6 +1,6 @@
 import { getHighWaters } from "./tideProvider.js";
 
-const appVersion = "v0.9";
+const appVersion = "v0.10";
 const storageKey = "tidal-atlas.smart-state";
 const legacyStorageKey = "tidal-atlas.hw-cherbourg";
 const maxManualHighWaters = 8;
@@ -48,6 +48,7 @@ const elements = {
   offsetLabel: document.querySelector("#offsetLabel"),
   validTime: document.querySelector("#validTime"),
   referenceTime: document.querySelector("#referenceTime"),
+  coefficientLabel: document.querySelector("#coefficientLabel"),
   pageCounter: document.querySelector("#pageCounter"),
   chartFrame: document.querySelector("#chartFrame"),
   chartImage: document.querySelector("#chartImage"),
@@ -133,7 +134,7 @@ function normaliseHighWaters(highWaters) {
   const byMinute = new Map();
 
   highWaters
-    .map((date) => new Date(date))
+    .map(toHighWaterDate)
     .filter((date) => !Number.isNaN(date.getTime()))
     .sort((a, b) => a - b)
     .forEach((date) => {
@@ -142,6 +143,26 @@ function normaliseHighWaters(highWaters) {
     });
 
   return [...byMinute.values()].sort((a, b) => a - b);
+}
+
+function toHighWaterDate(value) {
+  const sourceDate = value?.date || value?.time || value;
+  const date = new Date(sourceDate);
+
+  if (Number.isNaN(date.getTime())) return date;
+
+  if (value && typeof value === "object") {
+    const coefficientEstimate = Number(value.coefficientEstimate);
+    const rangeMetres = Number(value.rangeMetres);
+    const heightMetres = Number(value.heightMetres);
+
+    if (Number.isFinite(coefficientEstimate)) date.coefficientEstimate = coefficientEstimate;
+    if (Number.isFinite(rangeMetres)) date.rangeMetres = rangeMetres;
+    if (Number.isFinite(heightMetres)) date.heightMetres = heightMetres;
+    if (value.nextLowWater) date.nextLowWater = value.nextLowWater;
+  }
+
+  return date;
 }
 
 function getPages() {
@@ -184,6 +205,10 @@ function serialiseHighWaters() {
   return state.highWaters.map((date) => ({
     date: toDateInputValue(date),
     time: toTimeInputValue(date),
+    coefficientEstimate: date.coefficientEstimate,
+    rangeMetres: date.rangeMetres,
+    heightMetres: date.heightMetres,
+    nextLowWater: date.nextLowWater,
   }));
 }
 
@@ -217,8 +242,40 @@ function readJsonStorage(key) {
 
 function parseStoredHighWaters(savedHighWaters) {
   return (savedHighWaters || [])
-    .map((item) => parseLocalDateTime(item.date, item.time))
+    .map((item) => {
+      const date = parseLocalDateTime(item.date, item.time);
+      if (!date) return null;
+
+      if (Number.isFinite(Number(item.coefficientEstimate))) {
+        date.coefficientEstimate = Number(item.coefficientEstimate);
+      }
+      if (Number.isFinite(Number(item.rangeMetres))) {
+        date.rangeMetres = Number(item.rangeMetres);
+      }
+      if (Number.isFinite(Number(item.heightMetres))) {
+        date.heightMetres = Number(item.heightMetres);
+      }
+      if (item.nextLowWater) date.nextLowWater = item.nextLowWater;
+
+      return date;
+    })
     .filter(Boolean);
+}
+
+function formatCoefficient(date) {
+  const parts = [];
+
+  if (Number.isFinite(date.coefficientEstimate)) {
+    parts.push(`Coef est. ${Math.round(date.coefficientEstimate)}`);
+  }
+  if (Number.isFinite(date.rangeMetres)) {
+    parts.push(`range ${date.rangeMetres.toFixed(1)}m`);
+  }
+  if (Number.isFinite(date.heightMetres)) {
+    parts.push(`HW ${date.heightMetres.toFixed(1)}m`);
+  }
+
+  return parts.join(" · ");
 }
 
 function loadState() {
@@ -308,8 +365,11 @@ function renderChartSelect() {
 
   pages.forEach((page, index) => {
     const option = document.createElement("option");
+    const coefficientText = Number.isFinite(page.hwDateTime.coefficientEstimate)
+      ? ` · coef ~${Math.round(page.hwDateTime.coefficientEstimate)}`
+      : "";
     option.value = String(index);
-    option.textContent = `HW ${page.hwIndex + 1} · ${formatOffset(page.chart.offset)} · chart ${formatShortTime(page.validDate)}`;
+    option.textContent = `HW ${page.hwIndex + 1} · ${formatOffset(page.chart.offset)} · chart ${formatShortTime(page.validDate)}${coefficientText}`;
     option.selected = index === state.currentPageIndex;
     elements.chartSelect.append(option);
   });
@@ -343,6 +403,7 @@ function render() {
     elements.offsetLabel.textContent = "HW Cherbourg";
     elements.validTime.textContent = "Choose a planning date";
     elements.referenceTime.textContent = "Smart lookup is awaiting a provider";
+    elements.coefficientLabel.textContent = "";
     elements.pageCounter.textContent = "";
     elements.chartImage.removeAttribute("src");
     elements.chartCaption.textContent = "Open Manual HW fallback to enter known Cherbourg HW times.";
@@ -361,10 +422,11 @@ function render() {
   elements.offsetLabel.textContent = `${demoPrefix}HW ${page.hwIndex + 1} · ${formatOffset(page.chart.offset)}`;
   elements.validTime.textContent = `Chart valid: ${formatDateTime(page.validDate)}`;
   elements.referenceTime.textContent = `HW Cherbourg: ${formatDateTime(page.hwDateTime)} · ${offsetMath}`;
+  elements.coefficientLabel.textContent = formatCoefficient(page.hwDateTime);
   elements.pageCounter.textContent = `${state.currentPageIndex + 1} of ${pages.length}`;
   elements.chartImage.src = `charts/${encodeURIComponent(page.chart.file)}`;
   elements.chartImage.alt = `${formatOffset(page.chart.offset)} tidal stream chart`;
-  elements.chartCaption.textContent = `${state.source === "demo" ? "DEMO ONLY - not for navigation. " : ""}Chart valid ${formatClock(page.validDate)} from HW Cherbourg ${formatClock(page.hwDateTime)} (${offsetMath}). Original file: ${page.chart.file}`;
+  elements.chartCaption.textContent = `${state.source === "demo" ? "DEMO ONLY - not for navigation. " : ""}Chart valid ${formatClock(page.validDate)} from HW Cherbourg ${formatClock(page.hwDateTime)} (${offsetMath}). ${formatCoefficient(page.hwDateTime) || "Coefficient unavailable"}. Original file: ${page.chart.file}`;
   elements.prevButton.disabled = state.currentPageIndex === 0;
   elements.nextButton.disabled = state.currentPageIndex === pages.length - 1;
   elements.nowButton.disabled = false;
@@ -394,7 +456,7 @@ async function loadSmartHighWaters(anchorDate = state.planningDate, options = {}
     });
 
     if (result?.available && result.highWaters?.length) {
-      const fetchedHighWaters = result.highWaters.map((value) => new Date(value));
+      const fetchedHighWaters = result.highWaterDetails || result.highWaters;
       state.highWaters = normaliseHighWaters(
         options.merge ? [...state.highWaters, ...fetchedHighWaters] : fetchedHighWaters
       );
