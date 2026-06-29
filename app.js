@@ -1,6 +1,6 @@
 import { getHighWaters } from "./tideProvider.js";
 
-const appVersion = "v0.12";
+const appVersion = "v0.13";
 const storageKey = "tidal-atlas.smart-state";
 const legacyStorageKey = "tidal-atlas.hw-cherbourg";
 const maxManualHighWaters = 8;
@@ -564,8 +564,8 @@ async function moveChart(step) {
 
   if (nextIndex !== state.currentPageIndex) {
     state.currentPageIndex = nextIndex;
-    resetChartZoom();
     render();
+    applyChartTransform();
     await maybeExtendTimeline();
   }
 }
