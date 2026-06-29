@@ -1,10 +1,10 @@
-const CACHE_NAME = "north-brittany-tidal-atlas-v0.10";
+const CACHE_NAME = "north-brittany-tidal-atlas-v0.11";
 
 const APP_SHELL = [
   "./",
   "index.html",
-  "styles.css?v=0.10",
-  "app.js?v=0.10",
+  "styles.css?v=0.11",
+  "app.js?v=0.11",
   "tideProvider.js",
   "manifest.json",
   "icons/icon.svg",

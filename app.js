@@ -1,6 +1,6 @@
 import { getHighWaters } from "./tideProvider.js";
 
-const appVersion = "v0.10";
+const appVersion = "v0.11";
 const storageKey = "tidal-atlas.smart-state";
 const legacyStorageKey = "tidal-atlas.hw-cherbourg";
 const maxManualHighWaters = 8;
@@ -270,9 +270,6 @@ function formatCoefficient(date) {
   }
   if (Number.isFinite(date.rangeMetres)) {
     parts.push(`range ${date.rangeMetres.toFixed(1)}m`);
-  }
-  if (Number.isFinite(date.heightMetres)) {
-    parts.push(`HW ${date.heightMetres.toFixed(1)}m`);
   }
 
   return parts.join(" · ");

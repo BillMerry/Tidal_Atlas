@@ -32,7 +32,7 @@ The app is deliberately simple: vanilla HTML, CSS, and JavaScript, no build chai
 - Builds the chart timeline from loaded HW Cherbourg times.
 - Keeps manual HW Cherbourg entry as an advanced/offline fallback.
 - Loads HW Cherbourg times from WorldTides through a Cloudflare Worker proxy.
-- Displays a compact estimated tidal coefficient, range, and HW height when the provider supplies tide heights.
+- Displays a compact estimated tidal coefficient and range when the provider supplies tide heights.
 - Uses UK date format and a 24-hour clock.
 - Supports Previous and Next buttons.
 - Supports keyboard left/right arrow navigation.
@@ -82,7 +82,7 @@ Manual entry is the reliable fallback. The normal workflow uses the Cloudflare W
 
 The app includes `tideProvider.js` as the integration point for automatic lookup. The normal UI asks for a planning date; the provider returns HW Cherbourg times around that date. The app then builds a continuous chart timeline internally. Manual entry remains available under **Manual HW fallback**.
 
-The displayed coefficient is an estimate calculated from the WorldTides predicted Cherbourg high-to-following-low range. It is useful as a spring/neap cue, but it is not an official SHOM/Brest tidal coefficient and should be checked against trusted tide tables for passage planning.
+The displayed coefficient is an estimate calculated from the WorldTides predicted Cherbourg high-to-following-low range. The app does not display WorldTides' absolute tide height as a tide-table HW height because its datum may not match chart datum. The coefficient is useful as a spring/neap cue, but it is not an official SHOM/Brest tidal coefficient and should be checked against trusted tide tables for passage planning.
 
 Current live lookup routes to investigate:
 
